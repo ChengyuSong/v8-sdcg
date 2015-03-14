@@ -149,6 +149,10 @@ void RuntimeProfiler::Optimize(JSFunction* function, const char* reason) {
   }
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_patch_interrupt_code(Code* unoptimized_code, 
+        Code* interrupt_code, Code* replacement_code);
+#endif
 
 void RuntimeProfiler::AttemptOnStackReplacement(JSFunction* function) {
   // See AlwaysFullCompiler (in compiler.cc) comment on why we need
@@ -186,6 +190,11 @@ void RuntimeProfiler::AttemptOnStackReplacement(JSFunction* function) {
     Code* replacement_code =
         isolate_->builtins()->builtin(Builtins::kOnStackReplacement);
     Code* unoptimized_code = shared->code();
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_patch_interrupt_code(unoptimized_code, interrupt_code, replacement_code);
+    else
+#endif
     Deoptimizer::PatchInterruptCode(
         unoptimized_code, interrupt_code, replacement_code);
   }

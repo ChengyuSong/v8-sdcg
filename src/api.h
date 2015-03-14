@@ -524,6 +524,10 @@ class HandleScopeImplementer {
     DeleteArray(spare_);
   }
 
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   // Threading support for handle data.
   static int ArchiveSpacePerThread();
   char* RestoreThread(char* from);

@@ -146,7 +146,14 @@ class IC {
 #endif
 
   // Set the call-site target.
-  void set_target(Code* code) { SetTargetAtAddress(address(), code); }
+  void set_target(Code* code) { 
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_set_target_address_at(address(), code);
+    else
+#endif
+    SetTargetAtAddress(address(), code); 
+  }
 
 #ifdef DEBUG
   char TransitionMarkFromState(IC::State state);
@@ -164,7 +171,14 @@ class IC {
 
   // Access the target code for the given IC address.
   static inline Code* GetTargetAtAddress(Address address);
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: should use friend function
+public:
+#endif
   static inline void SetTargetAtAddress(Address address, Code* target);
+#ifdef SEC_DYN_CODE_GEN
+protected:
+#endif
   static void PostPatching(Address address, Code* target, Code* old_target);
 
   virtual void UpdateMonomorphicIC(Handle<JSObject> receiver,

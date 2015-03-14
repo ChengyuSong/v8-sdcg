@@ -84,6 +84,15 @@ class FullCodeGenerator: public AstVisitor {
     TOS_REG
   };
 
+#ifdef SEC_DYN_CODE_GEN
+  void SDCGPopulateCode(Handle<Code> code) {
+    PopulateDeoptimizationData(code);
+    PopulateTypeFeedbackInfo(code);
+    PopulateTypeFeedbackCells(code);
+    code->set_handler_table(*handler_table());
+  }
+#endif
+
   FullCodeGenerator(MacroAssembler* masm, CompilationInfo* info)
       : masm_(masm),
         info_(info),

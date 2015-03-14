@@ -299,7 +299,11 @@ void OptimizingCompiler::RecordOptimizationStats() {
 
 // A return value of true indicates the compilation pipeline is still
 // going, not necessarily that we optimized the code.
+#ifdef SEC_DYN_CODE_GEN
+bool MakeCrankshaftCode(CompilationInfo* info) {
+#else
 static bool MakeCrankshaftCode(CompilationInfo* info) {
+#endif
   OptimizingCompiler compiler(info);
   OptimizingCompiler::Status status = compiler.CreateGraph();
 

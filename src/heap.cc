@@ -4160,8 +4160,16 @@ MaybeObject* Heap::CreateCode(const CodeDesc& desc,
   return code;
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern MaybeObject* sdcg_copy_code(Heap *heap, Code *code, Vector<byte> *reloc_info);
+#endif
 
 MaybeObject* Heap::CopyCode(Code* code) {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1) {
+    return sdcg_copy_code(this, code, NULL);
+  } else {
+#endif
   // Allocate an object the same size as the code object.
   int obj_size = code->Size();
   MaybeObject* maybe_result;
@@ -4184,10 +4192,18 @@ MaybeObject* Heap::CopyCode(Code* code) {
       isolate_->code_range()->contains(code->address()));
   new_code->Relocate(new_addr - old_addr);
   return new_code;
+#ifdef SEC_DYN_CODE_GEN
+  }
+#endif
 }
 
 
 MaybeObject* Heap::CopyCode(Code* code, Vector<byte> reloc_info) {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1) {
+    return sdcg_copy_code(this, code, &reloc_info);
+  } else {
+#endif
   // Allocate ByteArray before the Code object, so that we do not risk
   // leaving uninitialized Code object (and breaking the heap).
   Object* reloc_info_array;
@@ -4242,6 +4258,9 @@ MaybeObject* Heap::CopyCode(Code* code, Vector<byte> reloc_info) {
   }
 #endif
   return new_code;
+#ifdef SEC_DYN_CODE_GEN
+  }
+#endif
 }
 
 

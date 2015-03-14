@@ -1526,7 +1526,13 @@ Handle<Code> StubCompiler::GetCodeWithFlags(Code::Flags flags,
   // Create code object in the heap.
   CodeDesc desc;
   masm_.GetCode(&desc);
-  Handle<Code> code = factory()->NewCode(desc, flags, masm_.CodeObject());
+  Handle<Code> code;
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    code = sdcg_new_code(isolate(), &desc, flags, masm_.CodeObject());
+  else
+#endif
+  code = factory()->NewCode(desc, flags, masm_.CodeObject());
 #ifdef ENABLE_DISASSEMBLER
   if (FLAG_print_code_stubs) code->Disassemble(name);
 #endif

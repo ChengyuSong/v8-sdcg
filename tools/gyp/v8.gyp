@@ -436,6 +436,7 @@
         '../../src/parser.h',
         '../../src/platform-posix.h',
         '../../src/platform.h',
+        '../../src/sdcg.h',
         '../../src/preparse-data-format.h',
         '../../src/preparse-data.cc',
         '../../src/preparse-data.h',
@@ -689,7 +690,8 @@
             },
             'sources': [  ### gcmole(os:linux) ###
               '../../src/platform-linux.cc',
-              '../../src/platform-posix.cc'
+              '../../src/platform-posix.cc',
+              '../../src/sdcg.cc'
             ],
           }
         ],

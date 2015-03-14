@@ -73,6 +73,11 @@ class StubCache {
     Map* map;
   };
 
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
+
   void Initialize();
 
   Handle<JSObject> StubHolder(Handle<JSObject> receiver,

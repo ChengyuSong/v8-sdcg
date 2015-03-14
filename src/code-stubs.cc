@@ -124,11 +124,21 @@ Handle<Code> PlatformCodeStub::GenerateCode() {
       GetExtraICState(),
       GetStubType(),
       GetStubFlags());
-  Handle<Code> new_object = factory->NewCode(
+  Handle<Code> new_object;
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    new_object = sdcg_new_code(isolate, &desc, flags, 
+                              masm.CodeObject(), NeedsImmovableCode());
+  else
+#endif
+  new_object = factory->NewCode(
       desc, flags, masm.CodeObject(), NeedsImmovableCode());
   return new_object;
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_finish_code(CodeStub* code_stub, Handle<Code> code, Isolate* isolate);
+#endif
 
 Handle<Code> CodeStub::GetCode(Isolate* isolate) {
   Factory* factory = isolate->factory();
@@ -145,8 +155,16 @@ Handle<Code> CodeStub::GetCode(Isolate* isolate) {
     HandleScope scope(isolate);
 
     Handle<Code> new_object = GenerateCode();
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_finish_code(this, new_object, isolate);
+    else {
+#endif
     new_object->set_major_key(MajorKey());
     FinishCode(new_object);
+#ifdef SEC_DYN_CODE_GEN
+    }
+#endif
     RecordCodeGeneration(*new_object, isolate);
 
 #ifdef ENABLE_DISASSEMBLER

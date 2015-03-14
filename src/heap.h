@@ -484,6 +484,10 @@ enum ArrayStorageAllocationMode {
 
 class Heap {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return sdcg_mmap(NULL, size, 3); }
+  void operator delete(void* p) {}
+#endif
   // Configure heap size before setup. Return false if the heap has been
   // set up already.
   bool ConfigureHeap(int max_semispace_size,

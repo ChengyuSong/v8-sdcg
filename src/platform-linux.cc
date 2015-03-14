@@ -336,7 +336,11 @@ static void* lowest_ever_allocated = reinterpret_cast<void*>(-1);
 static void* highest_ever_allocated = reinterpret_cast<void*>(0);
 
 
+#ifdef SEC_DYN_CODE_GEN
+void UpdateAllocatedSpaceLimits(void* address, int size) {
+#else
 static void UpdateAllocatedSpaceLimits(void* address, int size) {
+#endif
   ASSERT(limit_mutex != NULL);
   ScopedLock lock(limit_mutex);
 
@@ -357,14 +361,21 @@ void* OS::Allocate(const size_t requested,
                    bool is_executable) {
   const size_t msize = RoundUp(requested, AllocateAlignment());
   int prot = PROT_READ | PROT_WRITE | (is_executable ? PROT_EXEC : 0);
+#ifdef SEC_DYN_CODE_GEN
+  void* mbase = sdcg_mmap(NULL, msize, prot);
+#else
   void* addr = OS::GetRandomMmapAddr();
   void* mbase = mmap(addr, msize, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#endif
   if (mbase == MAP_FAILED) {
     LOG(i::Isolate::Current(),
         StringEvent("OS::Allocate", "mmap failed"));
     return NULL;
   }
   *allocated = msize;
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 0)
+#endif
   UpdateAllocatedSpaceLimits(mbase, msize);
   return mbase;
 }
@@ -400,12 +411,22 @@ OS::MemoryMappedFile* OS::MemoryMappedFile::open(const char* name) {
   int size = ftell(file);
 
   void* memory =
+#ifdef SEC_DYN_CODE_GEN
+      (void*)syscall(__NR_mmap,
+              OS::GetRandomMmapAddr(),
+              size,
+              PROT_READ | PROT_WRITE,
+              MAP_SHARED,
+              fileno(file),
+              0);
+#else
       mmap(OS::GetRandomMmapAddr(),
            size,
            PROT_READ | PROT_WRITE,
            MAP_SHARED,
            fileno(file),
            0);
+#endif
   return new PosixMemoryMappedFile(file, memory, size);
 }
 
@@ -420,12 +441,22 @@ OS::MemoryMappedFile* OS::MemoryMappedFile::create(const char* name, int size,
     return NULL;
   }
   void* memory =
+#ifdef SEC_DYN_CODE_GEN
+      (void*)syscall(__NR_mmap,
+              OS::GetRandomMmapAddr(),
+              size,
+              PROT_READ | PROT_WRITE,
+              MAP_SHARED,
+              fileno(file),
+              0);
+#else
       mmap(OS::GetRandomMmapAddr(),
            size,
            PROT_READ | PROT_WRITE,
            MAP_SHARED,
            fileno(file),
            0);
+#endif
   return new PosixMemoryMappedFile(file, memory, size);
 }
 
@@ -512,7 +543,12 @@ void OS::SignalCodeMovingGC() {
     OS::PrintError("Failed to open %s\n", FLAG_gc_fake_mmap);
     OS::Abort();
   }
+#ifdef SEC_DYN_CODE_GEN
+  void* addr = (void*)syscall(__NR_mmap,
+                    OS::GetRandomMmapAddr(),
+#else
   void* addr = mmap(OS::GetRandomMmapAddr(),
+#endif
                     size,
 #if defined(__native_client__)
                     // The Native Client port of V8 uses an interpreter,
@@ -557,12 +593,16 @@ VirtualMemory::VirtualMemory(size_t size, size_t alignment)
   ASSERT(IsAligned(alignment, static_cast<intptr_t>(OS::AllocateAlignment())));
   size_t request_size = RoundUp(size + alignment,
                                 static_cast<intptr_t>(OS::AllocateAlignment()));
+#ifdef SEC_DYN_CODE_GEN
+  void* reservation = sdcg_reserve(request_size);
+#else
   void* reservation = mmap(OS::GetRandomMmapAddr(),
                            request_size,
                            PROT_NONE,
                            MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
                            kMmapFd,
                            kMmapFdOffset);
+#endif
   if (reservation == MAP_FAILED) return;
 
   Address base = static_cast<Address>(reservation);
@@ -629,13 +669,16 @@ bool VirtualMemory::Guard(void* address) {
 
 
 void* VirtualMemory::ReserveRegion(size_t size) {
+#ifdef SEC_DYN_CODE_GEN
+  void* result = sdcg_reserve(size);
+#else
   void* result = mmap(OS::GetRandomMmapAddr(),
                       size,
                       PROT_NONE,
                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
                       kMmapFd,
                       kMmapFdOffset);
-
+#endif
   if (result == MAP_FAILED) return NULL;
 
   return result;
@@ -650,6 +693,10 @@ bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
 #else
   int prot = PROT_READ | PROT_WRITE | (is_executable ? PROT_EXEC : 0);
 #endif
+#ifdef SEC_DYN_CODE_GEN
+  if (MAP_FAILED == sdcg_mmap(base, size, prot))
+    return false;
+#else
   if (MAP_FAILED == mmap(base,
                          size,
                          prot,
@@ -658,19 +705,26 @@ bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
                          kMmapFdOffset)) {
     return false;
   }
-
+#endif
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 0)
+#endif
   UpdateAllocatedSpaceLimits(base, size);
   return true;
 }
 
 
 bool VirtualMemory::UncommitRegion(void* base, size_t size) {
+#ifdef SEC_DYN_CODE_GEN
+  return sdcg_unmap(base, size) != MAP_FAILED;
+#else
   return mmap(base,
               size,
               PROT_NONE,
               MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_FIXED,
               kMmapFd,
               kMmapFdOffset) != MAP_FAILED;
+#endif
 }
 
 

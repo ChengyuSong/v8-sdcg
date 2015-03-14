@@ -6422,7 +6422,14 @@ bool HOptimizedGraphBuilder::TryInline(CallKind call_kind,
     // Note that we compile here using the same AST that we will use for
     // generating the optimized inline code.
     target_info.EnableDeoptimizationSupport();
-    if (!FullCodeGenerator::MakeCode(&target_info)) {
+    bool succeed;
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      succeed = sdcg_make_code(&target_info);
+    else
+#endif
+    succeed = FullCodeGenerator::MakeCode(&target_info);
+    if (!succeed) {
       TraceInline(target, caller, "could not generate deoptimization info");
       return false;
     }

@@ -511,6 +511,9 @@ bool IncrementalMarking::WorthActivating() {
       heap_->PromotedSpaceSizeOfObjects() > kActivationThreshold;
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_patch_record_write_stub(Code* stub, RecordWriteStub::Mode mode);
+#endif
 
 void IncrementalMarking::ActivateGeneratedStub(Code* stub) {
   ASSERT(RecordWriteStub::GetMode(stub) ==
@@ -521,14 +524,28 @@ void IncrementalMarking::ActivateGeneratedStub(Code* stub) {
     // we don't need to do anything if incremental marking is
     // not active.
   } else if (IsCompacting()) {
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_patch_record_write_stub(stub, RecordWriteStub::INCREMENTAL_COMPACTION);
+    else
+#endif
     RecordWriteStub::Patch(stub, RecordWriteStub::INCREMENTAL_COMPACTION);
   } else {
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_patch_record_write_stub(stub, RecordWriteStub::INCREMENTAL);
+    else
+#endif
     RecordWriteStub::Patch(stub, RecordWriteStub::INCREMENTAL);
   }
 }
 
 
+#ifdef SEC_DYN_CODE_GEN
+void PatchIncrementalMarkingRecordWriteStubs(
+#else
 static void PatchIncrementalMarkingRecordWriteStubs(
+#endif
     Heap* heap, RecordWriteStub::Mode mode) {
   UnseededNumberDictionary* stubs = heap->code_stubs();
 
@@ -601,6 +618,9 @@ void IncrementalMarking::Start(CompactionFlag flag) {
   heap_->new_space()->LowerInlineAllocationLimit(kAllocatedThreshold);
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_patch_incremental_marking(Heap* heap, RecordWriteStub::Mode mode);
+#endif
 
 void IncrementalMarking::StartMarking(CompactionFlag flag) {
   if (FLAG_trace_incremental_marking) {
@@ -616,6 +636,11 @@ void IncrementalMarking::StartMarking(CompactionFlag flag) {
   RecordWriteStub::Mode mode = is_compacting_ ?
       RecordWriteStub::INCREMENTAL_COMPACTION : RecordWriteStub::INCREMENTAL;
 
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_patch_incremental_marking(heap_, mode);
+  else
+#endif
   PatchIncrementalMarkingRecordWriteStubs(heap_, mode);
 
   EnsureMarkingDequeIsCommitted();
@@ -828,6 +853,11 @@ void IncrementalMarking::Abort() {
   IncrementalMarking::set_should_hurry(false);
   ResetStepCounters();
   if (IsMarking()) {
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_patch_incremental_marking(heap_, RecordWriteStub::STORE_BUFFER_ONLY);
+    else
+#endif
     PatchIncrementalMarkingRecordWriteStubs(heap_,
                                             RecordWriteStub::STORE_BUFFER_ONLY);
     DeactivateIncrementalWriteBarrier();
@@ -855,6 +885,11 @@ void IncrementalMarking::Finalize() {
   heap_->new_space()->LowerInlineAllocationLimit(0);
   IncrementalMarking::set_should_hurry(false);
   ResetStepCounters();
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_patch_incremental_marking(heap_, RecordWriteStub::STORE_BUFFER_ONLY);
+  else
+#endif
   PatchIncrementalMarkingRecordWriteStubs(heap_,
                                           RecordWriteStub::STORE_BUFFER_ONLY);
   DeactivateIncrementalWriteBarrier();
@@ -890,6 +925,10 @@ void IncrementalMarking::OldSpaceStep(intptr_t allocated) {
   }
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_process_marking_queue(IncrementalMarking* incremental_marking, 
+                                      intptr_t bytes_to_process);
+#endif
 
 void IncrementalMarking::Step(intptr_t allocated_bytes,
                               CompletionAction action) {
@@ -936,6 +975,11 @@ void IncrementalMarking::Step(intptr_t allocated_bytes,
       StartMarking(PREVENT_COMPACTION);
     }
   } else if (state_ == MARKING) {
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1)
+      sdcg_process_marking_queue(this, bytes_to_process);
+    else
+#endif
     ProcessMarkingDeque(bytes_to_process);
     if (marking_deque_.IsEmpty()) MarkingComplete(action);
   }

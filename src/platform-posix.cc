@@ -794,6 +794,10 @@ class POSIXMutex : public Mutex {
 
 
 Mutex* OS::CreateMutex() {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_shared_vm_start == NULL)
+    sdcg_shared_vm_init();
+#endif
   return new POSIXMutex();
 }
 

@@ -393,6 +393,11 @@ class Isolate {
  public:
   ~Isolate();
 
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return sdcg_mmap(NULL, size, 3); }
+  void operator delete(void* p) {}
+#endif
+
   // A thread has a PerIsolateThreadData instance for each isolate that it has
   // entered. That instance is allocated when the isolate is initially entered
   // and reused on subsequent entries.
@@ -1208,8 +1213,15 @@ class Isolate {
 
   void Deinit();
 
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: should use friend function
+public:
+#endif
   static void SetIsolateThreadLocals(Isolate* isolate,
                                      PerIsolateThreadData* data);
+#ifdef SEC_DYN_CODE_GEN
+private:
+#endif
 
   // Allocate and insert PerIsolateThreadData into the ThreadDataTable
   // (regardless of whether such data already exists).

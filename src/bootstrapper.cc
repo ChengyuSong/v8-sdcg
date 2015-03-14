@@ -322,6 +322,9 @@ Handle<Context> Bootstrapper::CreateEnvironment(
   if (env.is_null() || !InstallExtensions(env, extensions)) {
     return Handle<Context>();
   }
+#ifdef enable_sandbox
+  sdcg_enable_sandbox();
+#endif
   return scope.CloseAndEscape(env);
 }
 

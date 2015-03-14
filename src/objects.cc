@@ -10213,6 +10213,11 @@ Map* Code::FindFirstMap() {
 }
 
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_set_target_object(RelocInfo* info, Object* replace_with);
+#endif
+
+
 void Code::ReplaceNthObject(int n,
                             Map* match_map,
                             Object* replace_with) {
@@ -10225,6 +10230,11 @@ void Code::ReplaceNthObject(int n,
     if (object->IsHeapObject()) {
       if (HeapObject::cast(object)->map() == match_map) {
         if (--n == 0) {
+#ifdef SEC_DYN_CODE_GEN
+          if (sdcg_mode == 1)
+            sdcg_set_target_object(info, replace_with);
+          else
+#endif
           info->set_target_object(replace_with);
           return;
         }
@@ -10347,8 +10357,16 @@ bool Code::allowed_in_shared_map_code_cache() {
        ICCompareStub::CompareState(stub_info()) == CompareIC::KNOWN_OBJECT);
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_patch_code_age(byte* sequence, Code::Age age, MarkingParity parity);
+#endif
 
 void Code::MakeCodeAgeSequenceYoung(byte* sequence) {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_patch_code_age(sequence, kNoAge, NO_MARKING_PARITY);
+  else
+#endif
   PatchPlatformCodeAge(sequence, kNoAge, NO_MARKING_PARITY);
 }
 
@@ -10360,6 +10378,12 @@ void Code::MakeOlder(MarkingParity current_parity) {
     MarkingParity code_parity;
     GetCodeAgeAndParity(sequence, &age, &code_parity);
     if (age != kLastCodeAge && code_parity != current_parity) {
+#ifdef SEC_DYN_CODE_GEN
+      if (sdcg_mode == 1)
+        sdcg_patch_code_age(sequence, static_cast<Age>(age + 1), 
+                           current_parity);
+      else
+#endif
       PatchPlatformCodeAge(sequence, static_cast<Age>(age + 1),
                            current_parity);
     }

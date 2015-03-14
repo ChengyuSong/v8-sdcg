@@ -224,6 +224,11 @@ class IncrementalMarking {
     unscanned_bytes_of_large_object_ = unscanned_bytes;
   }
 
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: should use friend function
+  void ProcessMarkingDeque(intptr_t bytes_to_process);
+#endif
+
  private:
   int64_t SpaceLeftInOldSpace();
 
@@ -249,7 +254,9 @@ class IncrementalMarking {
 
   INLINE(void ProcessMarkingDeque());
 
+#ifndef SEC_DYN_CODE_GEN
   INLINE(void ProcessMarkingDeque(intptr_t bytes_to_process));
+#endif
 
   INLINE(void VisitObject(Map* map, HeapObject* obj, int size));
 

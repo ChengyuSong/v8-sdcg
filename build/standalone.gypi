@@ -69,7 +69,7 @@
     'host_arch%': '<(host_arch)',
     'target_arch%': '<(target_arch)',
     'v8_target_arch%': '<(v8_target_arch)',
-    'werror%': '-Werror',
+    'werror%': '', #'-Werror',
 
     # .gyp files or targets should set v8_code to 1 if they build V8 specific
     # code, as opposed to external code.  This variable is used to control such
@@ -150,7 +150,7 @@
        or OS=="netbsd"', {
       'target_defaults': {
         'cflags': [ '-Wall', '<(werror)', '-W', '-Wno-unused-parameter',
-                    '-pthread', '-fno-exceptions', '-pedantic' ],
+                    '-pthread', '-fno-exceptions', '-pedantic', '-Wno-unused-local-typedefs', '-Wno-aggressive-loop-optimizations' ],
         'cflags_cc': [ '-Wnon-virtual-dtor', '-fno-rtti' ],
         'ldflags': [ '-pthread', ],
         'conditions': [

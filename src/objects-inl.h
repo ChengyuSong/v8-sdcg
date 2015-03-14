@@ -98,6 +98,54 @@ PropertyDetails PropertyDetails::AsDeleted() {
   }
 
 
+#ifdef SEC_DYN_CODE_GEN
+#define INT_CODE_ACCESSORS(holder, name, offset)                        \
+  int holder::name() { return READ_INT_FIELD(this, offset); }           \
+  void holder::set_##name(int value) {                                  \
+    if (sdcg_mode == 1)                                               \
+      sdcg_write_field(this, offset, value, INT);                        \
+    else                                                                \
+      WRITE_INT_FIELD(this, offset, value);                             \
+  }
+
+
+#define CODE_ACCESSORS(holder, name, type, offset)                      \
+  type* holder::name() { return type::cast(READ_FIELD(this, offset)); } \
+  void holder::set_##name(type* value, WriteBarrierMode mode) {         \
+    if (sdcg_mode == 1)                                               \
+      sdcg_write_field(this, offset, value, OBJECT);                     \
+    else                                                                \
+      WRITE_FIELD(this, offset, value);                                 \
+    CONDITIONAL_WRITE_BARRIER(GetHeap(), this, offset, value, mode);    \
+  }
+#endif
+
+
+#ifdef ASSEMBLER_WX_EXCLUSIVE
+#define INT_CODE_ACCESSORS(holder, name, offset)                        \
+  int holder::name() { return READ_INT_FIELD(this, offset); }           \
+  void holder::set_##name(int value) {                                  \
+    if (is_protected())                                                 \
+      OS::UnProtectCode(address(), Code::kHeaderSize);                  \
+    WRITE_INT_FIELD(this, offset, value);                               \
+    if (is_protected())                                                 \
+      OS::ProtectCode(address(), Code::kHeaderSize);                    \
+  }
+
+
+#define CODE_ACCESSORS(holder, name, type, offset)                      \
+  type* holder::name() { return type::cast(READ_FIELD(this, offset)); } \
+  void holder::set_##name(type* value, WriteBarrierMode mode) {         \
+    if (is_protected())                                                 \
+      OS::UnProtectCode(address(), Code::kHeaderSize);                  \
+    WRITE_FIELD(this, offset, value);                                   \
+    CONDITIONAL_WRITE_BARRIER(GetHeap(), this, offset, value, mode);    \
+    if (is_protected())                                                 \
+      OS::ProtectCode(address(), Code::kHeaderSize);                    \
+  }
+#endif
+
+
 // Getter that returns a tagged Smi and setter that writes a tagged Smi.
 #define ACCESSORS_TO_SMI(holder, name, offset)                          \
   Smi* holder::name() { return Smi::cast(READ_FIELD(this, offset)); }   \
@@ -3761,6 +3809,11 @@ void Code::set_flags(Code::Flags flags) {
   ASSERT((ExtractKindFromFlags(flags) != CALL_IC &&
           ExtractKindFromFlags(flags) != KEYED_CALL_IC) ||
          ExtractArgumentsCountFromFlags(flags) >= 0);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kFlagsOffset, flags, INT);
+  else
+#endif
   WRITE_INT_FIELD(this, kFlagsOffset, flags);
 }
 
@@ -3816,6 +3869,11 @@ inline bool Code::is_crankshafted() {
 inline void Code::set_is_crankshafted(bool value) {
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags2Offset);
   int updated = IsCrankshaftedField::update(previous, value);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags2Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags2Offset, updated);
 }
 
@@ -3847,6 +3905,11 @@ void Code::set_major_key(int major) {
   ASSERT(0 <= major && major < 256);
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags2Offset);
   int updated = StubMajorKeyField::update(previous, major);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags2Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags2Offset, updated);
 }
 
@@ -3872,6 +3935,11 @@ bool Code::optimizable() {
 
 void Code::set_optimizable(bool value) {
   ASSERT_EQ(FUNCTION, kind());
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kOptimizableOffset, value ? 1 : 0, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kOptimizableOffset, value ? 1 : 0);
 }
 
@@ -3887,6 +3955,11 @@ void Code::set_has_deoptimization_support(bool value) {
   ASSERT_EQ(FUNCTION, kind());
   byte flags = READ_BYTE_FIELD(this, kFullCodeFlags);
   flags = FullCodeFlagsHasDeoptimizationSupportField::update(flags, value);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kFullCodeFlags, flags, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kFullCodeFlags, flags);
 }
 
@@ -3902,6 +3975,11 @@ void Code::set_has_debug_break_slots(bool value) {
   ASSERT_EQ(FUNCTION, kind());
   byte flags = READ_BYTE_FIELD(this, kFullCodeFlags);
   flags = FullCodeFlagsHasDebugBreakSlotsField::update(flags, value);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kFullCodeFlags, flags, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kFullCodeFlags, flags);
 }
 
@@ -3917,6 +3995,11 @@ void Code::set_compiled_optimizable(bool value) {
   ASSERT_EQ(FUNCTION, kind());
   byte flags = READ_BYTE_FIELD(this, kFullCodeFlags);
   flags = FullCodeFlagsIsCompiledOptimizable::update(flags, value);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kFullCodeFlags, flags, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kFullCodeFlags, flags);
 }
 
@@ -3930,6 +4013,11 @@ int Code::allow_osr_at_loop_nesting_level() {
 void Code::set_allow_osr_at_loop_nesting_level(int level) {
   ASSERT_EQ(FUNCTION, kind());
   ASSERT(level >= 0 && level <= kMaxLoopNestingMarker);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kAllowOSRAtLoopNestingLevelOffset, level, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kAllowOSRAtLoopNestingLevelOffset, level);
 }
 
@@ -3943,6 +4031,11 @@ int Code::profiler_ticks() {
 void Code::set_profiler_ticks(int ticks) {
   ASSERT_EQ(FUNCTION, kind());
   ASSERT(ticks < 256);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kProfilerTicksOffset, ticks, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kProfilerTicksOffset, ticks);
 }
 
@@ -3959,6 +4052,11 @@ void Code::set_stack_slots(unsigned slots) {
   ASSERT(is_crankshafted());
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags1Offset);
   int updated = StackSlotsField::update(previous, slots);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags1Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags1Offset, updated);
 }
 
@@ -3976,6 +4074,11 @@ void Code::set_safepoint_table_offset(unsigned offset) {
   ASSERT(IsAligned(offset, static_cast<unsigned>(kIntSize)));
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags2Offset);
   int updated = SafepointTableOffsetField::update(previous, offset);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags2Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags2Offset, updated);
 }
 
@@ -3992,6 +4095,11 @@ void Code::set_back_edge_table_offset(unsigned offset) {
   ASSERT(IsAligned(offset, static_cast<unsigned>(kIntSize)));
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags2Offset);
   int updated = BackEdgeTableOffsetField::update(previous, offset);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags2Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags2Offset, updated);
 }
 
@@ -4007,6 +4115,11 @@ void Code::set_back_edges_patched_for_osr(bool value) {
   ASSERT_EQ(FUNCTION, kind());
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags2Offset);
   int updated = BackEdgesPatchedForOSRField::update(previous, value);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags2Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags2Offset, updated);
 }
 
@@ -4021,6 +4134,11 @@ CheckType Code::check_type() {
 
 void Code::set_check_type(CheckType value) {
   ASSERT(is_call_stub() || is_keyed_call_stub());
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kCheckTypeOffset, value, BYTE);
+  else
+#endif
   WRITE_BYTE_FIELD(this, kCheckTypeOffset, value);
 }
 
@@ -4041,6 +4159,11 @@ void Code::set_has_function_cache(bool flag) {
   ASSERT(kind() == STUB);
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags1Offset);
   int updated = HasFunctionCacheField::update(previous, flag);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags1Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags1Offset, updated);
 }
 
@@ -4056,6 +4179,11 @@ void Code::set_marked_for_deoptimization(bool flag) {
   ASSERT(kind() == OPTIMIZED_FUNCTION);
   int previous = READ_UINT32_FIELD(this, kKindSpecificFlags1Offset);
   int updated = MarkedForDeoptimizationField::update(previous, flag);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kKindSpecificFlags1Offset, updated, UINT32);
+  else
+#endif
   WRITE_UINT32_FIELD(this, kKindSpecificFlags1Offset, updated);
 }
 
@@ -5228,15 +5356,28 @@ JSMessageObject* JSMessageObject::cast(Object* obj) {
 }
 
 
+#ifdef SEC_DYN_CODE_GEN
+INT_CODE_ACCESSORS(Code, instruction_size, kInstructionSizeOffset)
+INT_CODE_ACCESSORS(Code, prologue_offset, kPrologueOffset)
+CODE_ACCESSORS(Code, relocation_info, ByteArray, kRelocationInfoOffset)
+CODE_ACCESSORS(Code, handler_table, FixedArray, kHandlerTableOffset)
+CODE_ACCESSORS(Code, deoptimization_data, FixedArray, kDeoptimizationDataOffset)
+#else
 INT_ACCESSORS(Code, instruction_size, kInstructionSizeOffset)
 INT_ACCESSORS(Code, prologue_offset, kPrologueOffset)
 ACCESSORS(Code, relocation_info, ByteArray, kRelocationInfoOffset)
 ACCESSORS(Code, handler_table, FixedArray, kHandlerTableOffset)
 ACCESSORS(Code, deoptimization_data, FixedArray, kDeoptimizationDataOffset)
+#endif
 
 
 // Type feedback slot: type_feedback_info for FUNCTIONs, stub_info for STUBs.
 void Code::InitializeTypeFeedbackInfoNoWriteBarrier(Object* value) {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kTypeFeedbackInfoOffset, value, OBJECT);
+  else
+#endif
   WRITE_FIELD(this, kTypeFeedbackInfoOffset, value);
 }
 
@@ -5249,6 +5390,11 @@ Object* Code::type_feedback_info() {
 
 void Code::set_type_feedback_info(Object* value, WriteBarrierMode mode) {
   ASSERT(kind() == FUNCTION);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kTypeFeedbackInfoOffset, value, OBJECT);
+  else
+#endif
   WRITE_FIELD(this, kTypeFeedbackInfoOffset, value);
   CONDITIONAL_WRITE_BARRIER(GetHeap(), this, kTypeFeedbackInfoOffset,
                             value, mode);
@@ -5272,6 +5418,11 @@ void Code::set_stub_info(int value) {
          kind() == KEYED_LOAD_IC ||
          kind() == STORE_IC ||
          kind() == KEYED_STORE_IC);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kTypeFeedbackInfoOffset, Smi::FromInt(value), OBJECT);
+  else
+#endif
   WRITE_FIELD(this, kTypeFeedbackInfoOffset, Smi::FromInt(value));
 }
 
@@ -5285,6 +5436,11 @@ Object* Code::code_to_deoptimize_link() {
 
 void Code::set_code_to_deoptimize_link(Object* value) {
   ASSERT(kind() == OPTIMIZED_FUNCTION);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_write_field(this, kTypeFeedbackInfoOffset, value, OBJECT);
+  else
+#endif
   WRITE_FIELD(this, kTypeFeedbackInfoOffset, value);
 }
 
@@ -5295,8 +5451,13 @@ Object** Code::code_to_deoptimize_link_slot() {
 }
 
 
+#ifdef SEC_DYN_CODE_GEN
+CODE_ACCESSORS(Code, gc_metadata, Object, kGCMetadataOffset)
+INT_CODE_ACCESSORS(Code, ic_age, kICAgeOffset)
+#else
 ACCESSORS(Code, gc_metadata, Object, kGCMetadataOffset)
 INT_ACCESSORS(Code, ic_age, kICAgeOffset)
+#endif
 
 
 byte* Code::instruction_start()  {

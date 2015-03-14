@@ -30,6 +30,8 @@
 
 #include "globals.h"
 
+#define SEC_DYN_CODE_GEN
+
 namespace v8 {
 namespace internal {
 
@@ -81,7 +83,12 @@ class AllStatic {
 
 template <typename T>
 T* NewArray(size_t size) {
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: customer allocator
+  T* result = reinterpret_cast<T*>(Malloced::New(size * sizeof(T)));
+#else
   T* result = new T[size];
+#endif
   if (result == NULL) Malloced::FatalProcessOutOfMemory();
   return result;
 }
@@ -89,7 +96,12 @@ T* NewArray(size_t size) {
 
 template <typename T>
 void DeleteArray(T* array) {
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: customer allocator
+  Malloced::Delete((void*)array);
+#else
   delete[] array;
+#endif
 }
 
 

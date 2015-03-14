@@ -441,6 +441,10 @@ class CompilationInfo {
 // Zone on construction and deallocates it on exit.
 class CompilationInfoWithZone: public CompilationInfo {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   explicit CompilationInfoWithZone(Handle<Script> script)
       : CompilationInfo(script, &zone_),
         zone_(script->GetIsolate()) {}

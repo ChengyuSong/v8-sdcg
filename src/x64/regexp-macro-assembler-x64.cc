@@ -999,7 +999,14 @@ Handle<HeapObject> RegExpMacroAssemblerX64::GetCode(Handle<String> source) {
   CodeDesc code_desc;
   masm_.GetCode(&code_desc);
   Isolate* isolate = ISOLATE;
-  Handle<Code> code = isolate->factory()->NewCode(
+  Handle<Code> code;
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    code = sdcg_new_code(isolate, &code_desc, Code::ComputeFlags(Code::REGEXP),
+      masm_.CodeObject());
+  else
+#endif
+  code = isolate->factory()->NewCode(
       code_desc, Code::ComputeFlags(Code::REGEXP),
       masm_.CodeObject());
   PROFILE(isolate, RegExpCodeCreateEvent(*code, *source));

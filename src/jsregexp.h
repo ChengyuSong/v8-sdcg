@@ -234,10 +234,18 @@ class RegExpImpl {
   // and the total executable memory at any point.
   static const int kRegExpExecutableMemoryLimit = 16 * MB;
   static const int kRegWxpCompiledLimit = 1 * MB;
-
- private:
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: should use friend function
   static bool CompileIrregexp(
       Handle<JSRegExp> re, Handle<String> sample_subject, bool is_ascii);
+#endif
+
+ private:
+#ifndef SEC_DYN_CODE_GEN
+  // FIXME
+  static bool CompileIrregexp(
+      Handle<JSRegExp> re, Handle<String> sample_subject, bool is_ascii);
+#endif
   static inline bool EnsureCompiledIrregexp(
       Handle<JSRegExp> re, Handle<String> sample_subject, bool is_ascii);
 };

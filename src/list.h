@@ -68,10 +68,18 @@ class List {
 
   INLINE(void* operator new(size_t size,
                             AllocationPolicy allocator = AllocationPolicy())) {
+#ifdef SEC_DYN_CODE_GEN
+    return Malloced::New(static_cast<int>(size));
+#else
     return allocator.New(static_cast<int>(size));
+#endif
   }
   INLINE(void operator delete(void* p)) {
+#ifdef SEC_DYN_CODE_GEN
+    Malloced::Delete(p);
+#else
     AllocationPolicy::Delete(p);
+#endif
   }
 
   // Please the MSVC compiler.  We should never have to execute this.
@@ -176,10 +184,18 @@ class List {
   int length_;
 
   INLINE(T* NewData(int n, AllocationPolicy allocator))  {
+#ifdef SEC_DYN_CODE_GEN
+    return static_cast<T*>(Malloced::New(n * sizeof(T)));
+#else
     return static_cast<T*>(allocator.New(n * sizeof(T)));
+#endif
   }
   INLINE(void DeleteData(T* data))  {
+#ifdef SEC_DYN_CODE_GEN
+    Malloced::Delete(data);
+#else
     AllocationPolicy::Delete(data);
+#endif
   }
 
   // Increase the capacity of a full list, and add an element.

@@ -103,6 +103,7 @@ int random();
 #include "lazy-instance.h"
 #include "utils.h"
 #include "v8globals.h"
+#include "sdcg.h"
 
 namespace v8 {
 namespace internal {

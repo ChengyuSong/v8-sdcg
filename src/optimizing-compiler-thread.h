@@ -104,6 +104,10 @@ class OptimizingCompilerThread : public Thread {
   Mutex* thread_id_mutex_;
 #endif
 
+#ifdef SEC_DYN_CODE_GEN
+  friend class Isolate;
+#endif
+
   Isolate* isolate_;
   Semaphore* stop_semaphore_;
   Semaphore* input_queue_semaphore_;

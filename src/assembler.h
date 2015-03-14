@@ -82,7 +82,12 @@ class AssemblerBase: public Malloced {
 
   int pc_offset() const { return static_cast<int>(pc_ - buffer_); }
 
+#ifdef SEC_DYN_CODE_GEN
+  // increase the buffer size to avoid frequent reallocation
+  static const int kMinimalBufferSize = 32*KB;
+#else
   static const int kMinimalBufferSize = 4*KB;
+#endif
 
  protected:
   // The buffer into which code and relocation info are generated. It could

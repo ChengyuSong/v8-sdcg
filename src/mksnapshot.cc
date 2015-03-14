@@ -402,6 +402,9 @@ int main(int argc, char** argv) {
   CppByteSink sink(argv[1]);
   // This results in a somewhat smaller snapshot, probably because it gets rid
   // of some things that are cached between garbage collections.
+#ifdef SEC_DYN_CODE_GEN
+  sdcg_mode = 0;
+#endif
   i::StartupSerializer ser(&sink);
   ser.SerializeStrongReferences();
 
@@ -409,6 +412,9 @@ int main(int argc, char** argv) {
   partial_ser.Serialize(&raw_context);
 
   ser.SerializeWeakReferences();
+#ifdef SEC_DYN_CODE_GEN
+  sdcg_mode = 1;
+#endif
 
 #ifdef COMPRESS_STARTUP_DATA_BZ2
   BZip2Compressor compressor;

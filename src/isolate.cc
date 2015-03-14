@@ -1987,7 +1987,9 @@ Isolate::~Isolate() {
   delete entry_stack_;
   entry_stack_ = NULL;
 
+#ifndef SEC_DYN_CODE_GEN
   delete[] assembler_spare_buffer_;
+#endif
   assembler_spare_buffer_ = NULL;
 
   delete unicode_cache_;

@@ -901,6 +901,9 @@ void MarkCompactCollector::AbortCompaction() {
   ASSERT_EQ(0, evacuation_candidates_.length());
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_prepare_for_mark_compact(PagedSpace *space);
+#endif
 
 void MarkCompactCollector::Prepare(GCTracer* tracer) {
   was_marked_incrementally_ = heap()->incremental_marking()->IsMarking();
@@ -939,6 +942,11 @@ void MarkCompactCollector::Prepare(GCTracer* tracer) {
   for (PagedSpace* space = spaces.next();
        space != NULL;
        space = spaces.next()) {
+#ifdef SEC_DYN_CODE_GEN
+    if (space->identity() == CODE_SPACE && sdcg_mode == 1) {
+      sdcg_prepare_for_mark_compact(space);
+    } else
+#endif
     space->PrepareForMarkCompact();
   }
 
@@ -2164,12 +2172,23 @@ void MarkCompactCollector::MarkImplicitRefGroups() {
   ref_groups->Rewind(last);
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_empty_marking_deque(MarkCompactCollector* collector);
+extern void sdcg_mark_compact_visit(Map* map, HeapObject* obj);
+void sdcg_mark_compact_visit_proxy(Map* map, HeapObject* obj) {
+  MarkCompactMarkingVisitor::IterateBody(map,obj);
+}
+#endif
 
 // Mark all objects reachable from the objects on the marking stack.
 // Before: the marking stack contains zero or more heap object pointers.
 // After: the marking stack is empty, and all objects reachable from the
 // marking stack have been marked, or are overflowed in the heap.
 void MarkCompactCollector::EmptyMarkingDeque() {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    return sdcg_empty_marking_deque(this);
+#endif
   while (!marking_deque_.IsEmpty()) {
     HeapObject* object = marking_deque_.Pop();
     ASSERT(object->IsHeapObject());
@@ -3030,6 +3049,9 @@ void MarkCompactCollector::EvacuateLiveObjectsFromPage(Page* p) {
   p->ResetLiveBytes();
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_evacuate_live_objects(MarkCompactCollector* collector, Page* page);
+#endif
 
 void MarkCompactCollector::EvacuatePages() {
   int npages = evacuation_candidates_.length();
@@ -3041,6 +3063,12 @@ void MarkCompactCollector::EvacuatePages() {
       // During compaction we might have to request a new page.
       // Check that space still have room for that.
       if (static_cast<PagedSpace*>(p->owner())->CanExpand()) {
+#ifdef SEC_DYN_CODE_GEN
+        if (sdcg_mode == 1 && 
+            static_cast<PagedSpace*>(p->owner())->identity() == CODE_SPACE)
+          sdcg_evacuate_live_objects(this, p);
+        else
+#endif    
         EvacuateLiveObjectsFromPage(p);
       } else {
         // Without room for expansion evacuation is not guaranteed to succeed.
@@ -4087,6 +4115,10 @@ void MarkCompactCollector::SweepSpace(PagedSpace* space, SweeperType sweeper) {
 }
 
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_sweep_code_space(MarkCompactCollector* p, PagedSpace* space);
+#endif
+
 void MarkCompactCollector::SweepSpaces() {
   GCTracer::Scope gc_scope(tracer_, GCTracer::Scope::MC_SWEEP);
 #ifdef DEBUG
@@ -4123,6 +4155,11 @@ void MarkCompactCollector::SweepSpaces() {
   }
 
   RemoveDeadInvalidatedCode();
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_sweep_code_space(this, heap()->code_space());
+  else
+#endif
   SweepSpace(heap()->code_space(), PRECISE);
 
   SweepSpace(heap()->cell_space(), PRECISE);

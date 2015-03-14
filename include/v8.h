@@ -40,6 +40,8 @@
 
 #include "v8stdint.h"
 
+#define SEC_DYN_CODE_GEN
+
 // We reserve the V8_* prefix for macros defined in V8 public API and
 // assume there are no name conflicts with the embedder's code.
 

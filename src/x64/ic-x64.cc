@@ -1643,8 +1643,17 @@ bool CompareIC::HasInlinedSmiCode(Address address) {
   return *test_instruction_address == Assembler::kTestAlByte;
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_patch_inline_smi_code(Address address, InlinedSmiCheck check);
+#endif
 
 void PatchInlinedSmiCode(Address address, InlinedSmiCheck check) {
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_patch_inline_smi_code(address, check);
+  else {
+#endif
+
   // The address of the instruction following the call.
   Address test_instruction_address =
       address + Assembler::kCallTargetAddressOffset;
@@ -1678,6 +1687,9 @@ void PatchInlinedSmiCode(Address address, InlinedSmiCheck check) {
       ? (*jmp_address == Assembler::kJncShortOpcode ? not_zero : zero)
       : (*jmp_address == Assembler::kJnzShortOpcode ? not_carry : carry);
   *jmp_address = static_cast<byte>(Assembler::kJccShortPrefix | cc);
+#ifdef SEC_DYN_CODE_GEN
+  }
+#endif
 }
 
 

@@ -909,6 +909,10 @@ class Space : public Malloced {
 // manages a range of virtual memory.
 class CodeRange {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   explicit CodeRange(Isolate* isolate);
   ~CodeRange() { TearDown(); }
 
@@ -989,6 +993,10 @@ class CodeRange {
 
 class SkipList {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   SkipList() {
     Clear();
   }
@@ -1046,6 +1054,10 @@ class SkipList {
 //
 class MemoryAllocator {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   explicit MemoryAllocator(Isolate* isolate);
 
   // Initializes its internal bookkeeping structures.

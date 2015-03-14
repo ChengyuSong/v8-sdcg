@@ -110,7 +110,9 @@ void V8::TearDown() {
   // caches so that the optimizing compiler thread (if running)
   // doesn't see an inconsistent view of the lithium instructions.
   isolate->TearDown();
+#ifndef SEC_DYN_CODE_GEN
   delete isolate;
+#endif
 
   ElementsAccessor::TearDown();
   LOperand::TearDownCaches();
@@ -288,6 +290,10 @@ void V8::InitializeOncePerProcessImpl() {
           NumberOfParallelSystemThreads(
               SystemThreadManager::PARALLEL_SWEEPING);
     }
+#ifdef SEC_DYN_CODE_GEN
+    // FIXME: currently not supported
+    FLAG_sweeper_threads = 0;
+#endif
     if (FLAG_sweeper_threads == 0) {
       FLAG_concurrent_sweeping = false;
       FLAG_parallel_sweeping = false;

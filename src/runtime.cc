@@ -8522,6 +8522,10 @@ RUNTIME_FUNCTION(MaybeObject*, Runtime_GetOptimizationCount) {
   return Smi::FromInt(function->shared()->opt_count());
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern void sdcg_revert_interrupt_code(Code* unoptimized_code,
+    Code* interrupt_code, Code* replacement_code);
+#endif
 
 RUNTIME_FUNCTION(MaybeObject*, Runtime_CompileForOnStackReplacement) {
   HandleScope scope(isolate);
@@ -8616,6 +8620,11 @@ RUNTIME_FUNCTION(MaybeObject*, Runtime_CompileForOnStackReplacement) {
   InterruptStub interrupt_stub;
   Handle<Code> interrupt_code = interrupt_stub.GetCode(isolate);
   Handle<Code> replacement_code = isolate->builtins()->OnStackReplacement();
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_revert_interrupt_code(*unoptimized, *interrupt_code, *replacement_code);
+  else
+#endif
   Deoptimizer::RevertInterruptCode(*unoptimized,
                                    *interrupt_code,
                                    *replacement_code);

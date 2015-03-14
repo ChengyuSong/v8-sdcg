@@ -131,6 +131,9 @@ AssemblerBase::AssemblerBase(Isolate* isolate, void* buffer, int buffer_size)
         isolate->set_assembler_spare_buffer(NULL);
       }
     }
+    // FIXME: this buffer contains code, but is not protected now
+    // a better implementation should make sure it is always
+    // mapped as readonly in the untrusted process
     if (buffer == NULL) buffer = NewArray<byte>(buffer_size);
     own_buffer_ = true;
   } else {

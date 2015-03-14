@@ -277,6 +277,10 @@ class SlotsBufferAllocator {
 // is the first element of typed slot's pair.
 class SlotsBuffer {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   typedef Object** ObjectSlot;
 
   explicit SlotsBuffer(SlotsBuffer* next_buffer)
@@ -415,6 +419,10 @@ class SlotsBuffer {
 // into the unoptimized code again during deoptimization.
 class CodeFlusher {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   explicit CodeFlusher(Isolate* isolate)
       : isolate_(isolate),
         jsfunction_candidates_head_(NULL),
@@ -537,6 +545,10 @@ class ThreadLocalTop;
 // Mark-Compact collector
 class MarkCompactCollector {
  public:
+#ifdef SEC_DYN_CODE_GEN
+  void* operator new(size_t size) { return Malloced::New(size); }
+  void operator delete(void* p) { Malloced::Delete(p); }
+#endif
   // Type of functions to compute forwarding addresses of objects in
   // compacted spaces.  Given an object and its size, return a (non-failure)
   // Object* that will be the object after forwarding.  There is a separate
@@ -632,6 +644,12 @@ class MarkCompactCollector {
     SWEEP_SEQUENTIALLY,
     SWEEP_IN_PARALLEL
   };
+
+#ifdef SEC_DYN_CODE_GEN
+  INLINE(void sdcg_sweep_code_space_proxy(PagedSpace* space)) {
+    SweepSpace(space, PRECISE);
+  }
+#endif
 
 #ifdef VERIFY_HEAP
   void VerifyMarkbitsAreClean();
@@ -740,6 +758,11 @@ class MarkCompactCollector {
 
   void WaitUntilMarkingCompleted();
 
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: should use friend function
+  void EvacuateLiveObjectsFromPage(Page* p);
+  void EmptyMarkingDeque();
+#endif
  private:
   MarkCompactCollector();
   ~MarkCompactCollector();
@@ -867,7 +890,10 @@ class MarkCompactCollector {
   // stack.  This function empties the marking stack, but may leave
   // overflowed objects in the heap, in which case the marking stack's
   // overflow flag will be set.
+#ifndef SEC_DYN_CODE_GEN
+  // FIXME
   void EmptyMarkingDeque();
+#endif
 
   // Refill the marking stack with overflowed objects from the heap.  This
   // function either leaves the marking stack full or clears the overflow
@@ -929,7 +955,10 @@ class MarkCompactCollector {
 
   void EvacuateNewSpace();
 
+#ifndef SEC_DYN_CODE_GEN
+  // FIXME
   void EvacuateLiveObjectsFromPage(Page* p);
+#endif
 
   void EvacuatePages();
 

@@ -444,6 +444,11 @@ LChunk* LChunk::NewChunk(HGraph* graph) {
   return chunk;
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern Handle<Code> sdcg_make_code_epilogue(MacroAssembler *masm,
+                                           CompilationInfo *info, 
+                                           LCodeGen *cgen);
+#endif
 
 Handle<Code> LChunk::Codegen() {
   MacroAssembler assembler(info()->isolate(), NULL, 0);
@@ -456,11 +461,20 @@ Handle<Code> LChunk::Codegen() {
 
   if (generator.GenerateCode()) {
     CodeGenerator::MakeCodePrologue(info(), "optimized");
+    Handle<Code> code;
+#ifdef SEC_DYN_CODE_GEN
+    if (sdcg_mode == 1) {
+    code = sdcg_make_code_epilogue(&assembler, info(), &generator);
+    } else {
+#endif
     Code::Flags flags = info()->flags();
-    Handle<Code> code =
+    code =
         CodeGenerator::MakeCodeEpilogue(&assembler, flags, info());
     generator.FinishCode(code);
     code->set_is_crankshafted(true);
+#ifdef SEC_DYN_CODE_GEN
+    }
+#endif
     if (!code.is_null()) {
       void* jit_handler_data =
           assembler.positions_recorder()->DetachJITHandlerData();

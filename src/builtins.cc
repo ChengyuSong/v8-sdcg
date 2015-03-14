@@ -126,6 +126,24 @@ BUILTIN_LIST_C(DEF_ARG_TYPE)
 
 #ifdef DEBUG
 
+#ifdef SEC_DYN_CODE_GEN
+
+// record stack base in case a stack copy is needed
+#define BUILTIN(name)                                            \
+  MUST_USE_RESULT static MaybeObject* Builtin_Impl_##name(       \
+      name##ArgumentsType args, Isolate* isolate);               \
+  MUST_USE_RESULT static MaybeObject* Builtin_##name(            \
+      int args_length, Object** args_object, Isolate* isolate) { \
+    name##ArgumentsType args(args_length, args_object);          \
+    sdcg_stack_base = (uint8_t*)args_object;                      \
+    ASSERT(isolate == Isolate::Current());                       \
+    args.Verify();                                               \
+    return Builtin_Impl_##name(args, isolate);                   \
+  }                                                              \
+  MUST_USE_RESULT static MaybeObject* Builtin_Impl_##name(       \
+      name##ArgumentsType args, Isolate* isolate)
+#else
+
 #define BUILTIN(name)                                            \
   MUST_USE_RESULT static MaybeObject* Builtin_Impl_##name(       \
       name##ArgumentsType args, Isolate* isolate);               \
@@ -138,6 +156,7 @@ BUILTIN_LIST_C(DEF_ARG_TYPE)
   }                                                              \
   MUST_USE_RESULT static MaybeObject* Builtin_Impl_##name(       \
       name##ArgumentsType args, Isolate* isolate)
+#endif
 
 #else  // For release mode.
 

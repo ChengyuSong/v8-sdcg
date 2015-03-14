@@ -2769,6 +2769,12 @@ void Deoptimizer::EnsureCodeForDeoptimizationEntry(Isolate* isolate,
   ASSERT(static_cast<int>(Deoptimizer::GetMaxDeoptTableSize()) >=
          desc.instr_size);
   chunk->CommitArea(desc.instr_size);
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+    sdcg_copy_bytes(chunk->area_start(), desc.buffer,
+        static_cast<size_t>(desc.instr_size));
+  else
+#endif
   CopyBytes(chunk->area_start(), desc.buffer,
       static_cast<size_t>(desc.instr_size));
   CPU::FlushICache(chunk->area_start(), desc.instr_size);

@@ -78,7 +78,7 @@
     'v8_enable_prof%': 0,
 
     # Some versions of GCC 4.5 seem to need -fno-strict-aliasing.
-    'v8_no_strict_aliasing%': 0,
+    'v8_no_strict_aliasing%': 1,
 
     # Chrome needs this definition unconditionally. For standalone V8 builds,
     # it's handled in build/standalone.gypi.

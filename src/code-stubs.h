@@ -222,8 +222,15 @@ class CodeStub BASE_EMBEDDED {
   // initially generated.
   void RecordCodeGeneration(Code* code, Isolate* isolate);
 
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: we need to call this method, but its better to use friend function
+public:
+#endif
   // Finish the code object after it has been generated.
   virtual void FinishCode(Handle<Code> code) { }
+#ifdef SEC_DYN_CODE_GEN
+private:
+#endif
 
   // Activate newly generated stub. Is called after
   // registering stub in the stub cache.

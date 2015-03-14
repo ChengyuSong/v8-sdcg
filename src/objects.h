@@ -5294,6 +5294,12 @@ class Code: public HeapObject {
   static const int kFlagsNotUsedInLookup =
       TypeField::kMask | CacheHolderField::kMask;
 
+#ifdef SEC_DYN_CODE_GEN
+  // FIXME: should use friend function
+  // Code aging -- platform-specific
+  static void PatchPlatformCodeAge(byte* sequence, Age age,
+                                   MarkingParity parity);
+#endif
  private:
   friend class RelocIterator;
 
@@ -5305,9 +5311,12 @@ class Code: public HeapObject {
                                   MarkingParity* parity);
   static Code* GetCodeAgeStub(Age age, MarkingParity parity);
 
+#ifndef SEC_DYN_CODE_GEN
+  // FIXME
   // Code aging -- platform-specific
   static void PatchPlatformCodeAge(byte* sequence, Age age,
                                    MarkingParity parity);
+#endif
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(Code);
 };

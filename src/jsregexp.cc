@@ -358,6 +358,10 @@ Handle<Object> RegExpImpl::AtomExec(Handle<JSRegExp> re,
   return last_match_info;
 }
 
+#ifdef SEC_DYN_CODE_GEN
+extern bool sdcg_regexp_compile(Handle<JSRegExp> regexp, Handle<String> subject, 
+                               bool is_ascii, Isolate* isolate);
+#endif
 
 // Irregexp implementation.
 
@@ -384,6 +388,11 @@ bool RegExpImpl::EnsureCompiledIrregexp(
     ASSERT(compiled_code->IsSmi());
     return true;
   }
+#ifdef SEC_DYN_CODE_GEN
+  if (sdcg_mode == 1)
+      return sdcg_regexp_compile(re, sample_subject, is_ascii, re->GetIsolate());
+  else
+#endif
   return CompileIrregexp(re, sample_subject, is_ascii);
 }
 
